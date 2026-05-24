@@ -3,6 +3,10 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { pool } from './config/db.js';
 
+import ofertasRoutes from './routes/OfertasRoutes.js';
+import aplicacionesRoutes from './routes/AplicacionesRoutes.js';
+import dashboardRoutes from './routes/DashboardRoutes.js';
+
 dotenv.config();
 
 const app = express();
@@ -10,6 +14,10 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+app.use('/api', ofertasRoutes);
+app.use('/api', aplicacionesRoutes);
+app.use('/api', dashboardRoutes);
 
 app.get('/', (req, res) => {
   res.send('API de Koruve funcionando correctamente');
