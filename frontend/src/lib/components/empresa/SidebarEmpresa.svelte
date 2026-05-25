@@ -1,5 +1,12 @@
 <script>
   import logoKoruve from '$lib/assets/logo-koruve.png';
+  import {
+    House,
+    FilePlus,
+    BriefcaseBusiness,
+    UsersRound,
+    LogOut
+  } from '@lucide/svelte';
 
   let { active = 'dashboard' } = $props();
 </script>
@@ -10,11 +17,30 @@
   </div>
 
   <nav class="menu">
-    <a class:active={active === 'dashboard'} href="/empresa/dashboard">Panel</a>
-    <a class:active={active === 'crear'} href="/empresa/ofertas/crear">Publicar un Nuevo Empleo</a>
-    <a class:active={active === 'ofertas'} href="/empresa/ofertas">Gestionar Empleos</a>
-    <a class:active={active === 'aplicantes'} href="/empresa/ofertas">Todos los Solicitantes</a>
-    <a href="/iniciar-sesion">Cerrar Sesión</a>
+    <a class:active={active === 'dashboard'} href="/empresa/dashboard">
+      <House size={20} strokeWidth={1.8} />
+      <span>Panel</span>
+    </a>
+
+    <a class:active={active === 'crear'} href="/empresa/ofertas/crear">
+      <FilePlus size={20} strokeWidth={1.8} />
+      <span>Publicar Nuevo Empleo</span>
+    </a>
+
+    <a class:active={active === 'ofertas'} href="/empresa/ofertas">
+      <BriefcaseBusiness size={20} strokeWidth={1.8} />
+      <span>Gestionar Empleos</span>
+    </a>
+
+    <a class:active={active === 'aplicantes'} href="/empresa/ofertas">
+      <UsersRound size={20} strokeWidth={1.8} />
+      <span>Todos los Solicitantes</span>
+    </a>
+
+    <a href="/iniciar-sesion">
+      <LogOut size={20} strokeWidth={1.8} />
+      <span>Cerrar Sesión</span>
+    </a>
   </nav>
 </aside>
 
@@ -50,8 +76,18 @@
     padding: 16px 18px;
     border-radius: 8px;
     font-size: 15px;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    gap: 14px;
     transition: 0.2s ease;
+  }
+
+  .menu a :global(svg) {
+    flex-shrink: 0;
+  }
+
+  .menu a span {
+    line-height: 1.3;
   }
 
   .menu a.active,

@@ -72,8 +72,7 @@
         inicial: item.nombre_completo ? item.nombre_completo.charAt(0).toUpperCase() : '?'
       }));
     } catch (err) {
-      error = err.message || 'Error al cargar el dashboard';
-      console.error('Error real del dashboard:', err);
+        error = 'Error al cargar el dashboard';
     } finally {
       cargando = false;
     }
