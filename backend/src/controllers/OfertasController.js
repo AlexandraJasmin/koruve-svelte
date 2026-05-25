@@ -1,5 +1,138 @@
 import { pool } from '../config/db.js';
 
+export const obtenerTodasLasOfertas = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT 
+        o.id_oferta,
+        o.id_empresa,
+        e.nombre_empresa,
+        e.rubro,
+        e.sitio_web,
+        o.titulo,
+        o.descripcion,
+        o.requisitos,
+        o.salario,
+        o.modalidad,
+        o.ubicacion,
+        o.tipo_contrato,
+        o.estado,
+        o.fecha_publicacion
+      FROM ofertas o
+      INNER JOIN empresas e ON o.id_empresa = e.id_empresa
+      WHERE o.estado = 'activa'
+      ORDER BY o.fecha_publicacion DESC`
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error al obtener ofertas:', error);
+    res.status(500).json({
+      mensaje: 'Error al obtener las ofertas',
+      error: error.message
+    });
+  }
+};
+
+export const filtrarOfertas = async (req, res) => {
+  try {
+    const { busqueda, ciudad, categoria, salarioMax, fecha } = req.query;
+    let tipos = req.query.tipo;
+
+    let query = `
+      SELECT 
+        o.id_oferta,
+        o.id_empresa,
+        e.nombre_empresa,
+        e.rubro,
+        e.sitio_web,
+        o.titulo,
+        o.descripcion,
+        o.requisitos,
+        o.salario,
+        o.modalidad,
+        o.ubicacion,
+        o.tipo_contrato,
+        o.estado,
+        o.fecha_publicacion
+      FROM ofertas o
+      INNER JOIN empresas e ON o.id_empresa = e.id_empresa
+      WHERE o.estado = 'activa'
+    `;
+
+    const values = [];
+    let index = 1;
+
+    if (busqueda) {
+      query += ` AND (
+        LOWER(o.titulo) LIKE LOWER($${index})
+        OR LOWER(o.descripcion) LIKE LOWER($${index})
+        OR LOWER(e.nombre_empresa) LIKE LOWER($${index})
+        OR LOWER(e.rubro) LIKE LOWER($${index})
+      )`;
+      values.push(`%${busqueda}%`);
+      index++;
+    }
+
+    if (ciudad) {
+      query += ` AND LOWER(o.ubicacion) LIKE LOWER($${index})`;
+      values.push(`%${ciudad}%`);
+      index++;
+    }
+
+    if (categoria) {
+      query += ` AND LOWER(e.rubro) LIKE LOWER($${index})`;
+      values.push(`%${categoria}%`);
+      index++;
+    }
+
+    if (salarioMax) {
+      query += ` AND o.salario <= $${index}`;
+      values.push(Number(salarioMax));
+      index++;
+    }
+
+    if (tipos) {
+      if (!Array.isArray(tipos)) {
+        tipos = [tipos];
+      }
+
+      query += ` AND (`;
+
+      for (let i = 0; i < tipos.length; i++) {
+        query += `LOWER(o.tipo_contrato) = LOWER($${index})`;
+        values.push(tipos[i]);
+        index++;
+
+        if (i < tipos.length - 1) {
+          query += ` OR `;
+        }
+      }
+
+      query += `)`;
+    }
+
+    if (fecha && fecha !== 'todas') {
+      if (fecha === '1h') query += ` AND o.fecha_publicacion >= NOW() - INTERVAL '1 hour'`;
+      if (fecha === '24h') query += ` AND o.fecha_publicacion >= NOW() - INTERVAL '24 hours'`;
+      if (fecha === '7d') query += ` AND o.fecha_publicacion >= NOW() - INTERVAL '7 days'`;
+      if (fecha === '14d') query += ` AND o.fecha_publicacion >= NOW() - INTERVAL '14 days'`;
+      if (fecha === '30d') query += ` AND o.fecha_publicacion >= NOW() - INTERVAL '30 days'`;
+    }
+
+    query += ` ORDER BY o.fecha_publicacion DESC`;
+
+    const result = await pool.query(query, values);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error al filtrar ofertas:', error);
+    res.status(500).json({
+      mensaje: 'Error al filtrar ofertas',
+      error: error.message
+    });
+  }
+};
+
 export const crearOferta = async (req, res) => {
   try {
     const {
@@ -89,6 +222,11 @@ export const obtenerDetalleOferta = async (req, res) => {
         o.id_oferta,
         o.id_empresa,
         e.nombre_empresa,
+        e.rubro,
+        e.descripcion AS descripcion_empresa,
+        e.telefono,
+        e.correo,
+        e.sitio_web,
         o.titulo,
         o.descripcion,
         o.requisitos,
