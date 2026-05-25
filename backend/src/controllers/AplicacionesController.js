@@ -14,11 +14,12 @@ export const obtenerAplicantesPorOferta = async (req, res) => {
         u.nombre_completo,
         u.correo,
         u.telefono,
-        u.profesion,
+        u.foto_perfil,
+        u.titulo_profesional,
         u.experiencia,
         u.nivel_educativo,
-        u.habilidades,
-        u.ubicacion
+        u.descripcion,
+        u.idiomas
       FROM aplicaciones a
       INNER JOIN usuarios u ON a.id_usuario = u.id_usuario
       WHERE a.id_oferta = $1

@@ -186,6 +186,15 @@ export const obtenerDetalleOferta = async (req, res) => {
         o.id_oferta,
         o.id_empresa,
         e.nombre_empresa,
+        e.logo,
+        e.portada,
+        e.telefono,
+        e.correo,
+        e.sitio_web,
+        e.fecha_fundacion,
+        e.tamano_equipo,
+        e.categoria AS categoria_empresa,
+        e.descripcion AS descripcion_empresa,
         o.titulo,
         o.descripcion,
         o.requisitos,
@@ -193,11 +202,32 @@ export const obtenerDetalleOferta = async (req, res) => {
         o.modalidad,
         o.ubicacion,
         o.tipo_contrato,
+        o.responsabilidades,
+        o.habilidades_experiencia,
+        o.horario_laboral,
+        o.tipo_salario,
+        o.nivel_estudios,
+        o.experiencia_requerida,
+        o.tipo_empleo,
+        o.certificaciones,
+        o.idiomas_requeridos,
+        o.fecha_limite,
+        o.pais,
+        o.ciudad,
+        o.direccion,
+        o.referencia_mapa,
+        o.latitud,
+        o.longitud,
+        o.categoria_empleo,
+        o.urgente,
         o.estado,
-        o.fecha_publicacion
+        o.fecha_publicacion,
+        COUNT(a.id_aplicacion) AS total_aplicaciones
       FROM ofertas o
       INNER JOIN empresas e ON o.id_empresa = e.id_empresa
-      WHERE o.id_oferta = $1`,
+      LEFT JOIN aplicaciones a ON o.id_oferta = a.id_oferta
+      WHERE o.id_oferta = $1
+      GROUP BY o.id_oferta, e.id_empresa`,
       [id]
     );
 
@@ -250,6 +280,69 @@ export const cambiarEstadoOferta = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       mensaje: 'Error al cambiar el estado de la oferta',
+      error: error.message
+    });
+  }
+};
+
+export const obtenerOfertaPorId = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `SELECT 
+        o.id_oferta,
+        o.id_empresa,
+        o.titulo,
+        o.descripcion,
+        o.requisitos,
+        o.salario,
+        o.modalidad,
+        o.ubicacion,
+        o.tipo_contrato,
+        o.responsabilidades,
+        o.habilidades_experiencia,
+        o.horario_laboral,
+        o.tipo_salario,
+        o.nivel_estudios,
+        o.experiencia_requerida,
+        o.tipo_empleo,
+        o.certificaciones,
+        o.idiomas_requeridos,
+        o.fecha_limite,
+        o.pais,
+        o.ciudad,
+        o.direccion,
+        o.referencia_mapa,
+        o.latitud,
+        o.longitud,
+        o.categoria_empleo,
+        o.urgente,
+        o.estado,
+        o.fecha_publicacion,
+        e.nombre_empresa,
+        e.logo,
+        e.telefono,
+        e.correo,
+        COUNT(a.id_aplicacion) AS total_aplicaciones
+      FROM ofertas o
+      INNER JOIN empresas e ON o.id_empresa = e.id_empresa
+      LEFT JOIN aplicaciones a ON o.id_oferta = a.id_oferta
+      WHERE o.id_oferta = $1
+      GROUP BY o.id_oferta, e.id_empresa`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        mensaje: 'Oferta no encontrada'
+      });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({
+      mensaje: 'Error al obtener el detalle de la oferta',
       error: error.message
     });
   }

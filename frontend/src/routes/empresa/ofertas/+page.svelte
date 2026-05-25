@@ -129,8 +129,8 @@
   };
 
   const irADetalle = (id) => {
-    goto(`/empresa/ofertas/${id}/aplicantes`);
-  };
+  goto(`/empresa/ofertas/${id}`);
+ };
 
   onMount(() => {
     cargarOfertas();
