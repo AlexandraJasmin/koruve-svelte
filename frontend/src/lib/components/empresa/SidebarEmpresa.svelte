@@ -32,9 +32,9 @@
       <span>Gestionar Empleos</span>
     </a>
 
-    <a class:active={active === 'aplicantes'} href="/empresa/ofertas">
-      <UsersRound size={20} strokeWidth={1.8} />
-      <span>Todos los Solicitantes</span>
+    <a class:active={active === 'aplicantes'} href="/empresa/aplicantes">
+        <UsersRound size={20} strokeWidth={1.8} />
+        <span>Todos los Solicitantes</span>
     </a>
 
     <a href="/iniciar-sesion">

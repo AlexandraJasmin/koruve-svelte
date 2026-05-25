@@ -6,6 +6,7 @@ import { pool } from './config/db.js';
 import ofertasRoutes from './routes/OfertasRoutes.js';
 import aplicacionesRoutes from './routes/AplicacionesRoutes.js';
 import dashboardRoutes from './routes/DashboardRoutes.js';
+import usuariosRoutes from './routes/UsuariosRoutes.js';
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use('/api', ofertasRoutes);
 app.use('/api', aplicacionesRoutes);
 app.use('/api', dashboardRoutes);
+app.use('/api', usuariosRoutes);
 
 app.get('/', (req, res) => {
   res.send('API de Koruve funcionando correctamente');

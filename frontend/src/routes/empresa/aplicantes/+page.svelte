@@ -1,11 +1,9 @@
 <script>
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
-  import { page } from '$app/state';
   import { API_URL } from '$lib/services/api.js';
   import LayoutEmpresa from '$lib/components/empresa/LayoutEmpresa.svelte';
   import {
-    ArrowLeft,
     UsersRound,
     UserCheck,
     UserX,
@@ -19,7 +17,8 @@
     Languages,
     BriefcaseBusiness,
     CalendarDays,
-    AlertCircle
+    AlertCircle,
+    Search
   } from '@lucide/svelte';
 
   let empresa = $state({
@@ -28,12 +27,13 @@
     logo: ''
   });
 
-  let oferta = $state(null);
   let aplicantes = $state([]);
-  let filtroEstado = $state('todos');
-
   let cargando = $state(true);
   let error = $state('');
+
+  let filtroEstado = $state('todos');
+  let filtroOferta = $state('todas');
+  let busqueda = $state('');
 
   let modalAbierto = $state(false);
   let modalAccion = $state('');
@@ -77,42 +77,49 @@
     aplicantes.filter((aplicante) => aplicante.estado === 'denegada').length
   );
 
-  const aplicantesFiltrados = $derived(
-    filtroEstado === 'todos'
-      ? aplicantes
-      : aplicantes.filter((aplicante) => aplicante.estado === filtroEstado)
+  const ofertasDisponibles = $derived(
+    Array.from(
+      new Map(
+        aplicantes.map((aplicante) => [
+          aplicante.id_oferta,
+          {
+            id: aplicante.id_oferta,
+            titulo: aplicante.titulo_oferta
+          }
+        ])
+      ).values()
+    )
   );
 
-  const cargarDatos = async () => {
+  const aplicantesFiltrados = $derived(
+    aplicantes.filter((aplicante) => {
+      const coincideEstado =
+        filtroEstado === 'todos' || aplicante.estado === filtroEstado;
+
+      const coincideOferta =
+        filtroOferta === 'todas' || String(aplicante.id_oferta) === String(filtroOferta);
+
+      const texto = `${aplicante.nombre_completo || ''} ${aplicante.correo || ''} ${aplicante.titulo_oferta || ''}`.toLowerCase();
+      const coincideBusqueda = texto.includes(busqueda.toLowerCase().trim());
+
+      return coincideEstado && coincideOferta && coincideBusqueda;
+    })
+  );
+
+  const cargarAplicantes = async () => {
     try {
       cargando = true;
       error = '';
 
-      const idOferta = page.params.id;
+      const respuesta = await fetch(`${API_URL}/empresas/${empresa.id}/aplicantes`);
 
-      const [respuestaOferta, respuestaAplicantes] = await Promise.all([
-        fetch(`${API_URL}/ofertas/${idOferta}`),
-        fetch(`${API_URL}/ofertas/${idOferta}/aplicantes`)
-      ]);
-
-      if (!respuestaOferta.ok) {
-        throw new Error('No se pudo cargar la información de la oferta.');
+      if (!respuesta.ok) {
+        throw new Error('No se pudieron cargar los solicitantes.');
       }
 
-      if (!respuestaAplicantes.ok) {
-        throw new Error('No se pudieron cargar los postulantes.');
-      }
-
-      oferta = await respuestaOferta.json();
-      aplicantes = await respuestaAplicantes.json();
-
-      empresa = {
-        id: oferta.id_empresa || 1,
-        nombre: oferta.nombre_empresa || 'Empresa',
-        logo: oferta.logo || ''
-      };
+      aplicantes = await respuesta.json();
     } catch (err) {
-      error = err.message || 'Error al cargar los postulantes.';
+      error = err.message || 'Error al cargar los solicitantes.';
     } finally {
       cargando = false;
     }
@@ -152,7 +159,7 @@
       );
 
       if (!respuesta.ok) {
-        throw new Error('No se pudo actualizar el estado del postulante.');
+        throw new Error('No se pudo actualizar el estado del solicitante.');
       }
 
       aplicantes = aplicantes.map((aplicante) =>
@@ -170,49 +177,34 @@
     }
   };
 
-  const volverADetalle = () => {
-    goto(`/empresa/ofertas/${page.params.id}`);
+  const verPerfil = (aplicante) => {
+    goto(
+      `/empresa/postulantes/${aplicante.id_usuario}?idAplicacion=${aplicante.id_aplicacion}&idOferta=${aplicante.id_oferta}&estado=${aplicante.estado}`
+    );
   };
 
-  const verPerfil = (aplicante) => {
-  goto(
-    `/empresa/postulantes/${aplicante.id_usuario}?idAplicacion=${aplicante.id_aplicacion}&idOferta=${aplicante.id_oferta}&estado=${aplicante.estado}`
-  );
-};
-
   onMount(() => {
-    cargarDatos();
+    cargarAplicantes();
   });
 </script>
 
-<LayoutEmpresa active="ofertas" {empresa}>
+<LayoutEmpresa active="aplicantes" {empresa}>
   {#if cargando}
-    <p class="message">Cargando postulantes...</p>
+    <p class="message">Cargando solicitantes...</p>
   {:else if error}
     <section class="error-card">
       <AlertCircle size={46} strokeWidth={1.8} />
-      <h1>No se pudo cargar la información</h1>
+      <h1>No se pudieron cargar los solicitantes</h1>
       <p>{error}</p>
-      <button type="button" onclick={volverADetalle}>
-        Volver al detalle de la oferta
+      <button type="button" onclick={cargarAplicantes}>
+        Intentar de nuevo
       </button>
     </section>
   {:else}
     <section class="page-header">
-      <button class="back-button" type="button" onclick={volverADetalle}>
-        <ArrowLeft size={18} strokeWidth={1.8} />
-        Volver al detalle
-      </button>
-
-      <div class="title-row">
-        <div>
-          <h1>Postulantes de la oferta</h1>
-          <p>{mostrarValor(oferta?.titulo)}</p>
-        </div>
-
-        <div class="offer-status {oferta?.estado}">
-          {normalizarEstado(oferta?.estado)}
-        </div>
+      <div>
+        <h1>Todos los solicitantes</h1>
+        <p>Consulta y gestiona las solicitudes recibidas en todas tus ofertas.</p>
       </div>
     </section>
 
@@ -259,8 +251,22 @@
     </section>
 
     <section class="applicants-card">
-      <div class="card-header">
-        <h2>Solicitantes</h2>
+      <div class="filters">
+        <div class="search-box">
+          <Search size={18} strokeWidth={1.8} />
+          <input
+            type="text"
+            bind:value={busqueda}
+            aria-label="Buscar solicitante"
+          />
+        </div>
+
+        <select bind:value={filtroOferta}>
+          <option value="todas">Todas las ofertas</option>
+          {#each ofertasDisponibles as oferta}
+            <option value={oferta.id}>{oferta.titulo}</option>
+          {/each}
+        </select>
 
         <select bind:value={filtroEstado}>
           <option value="todos">Todos los estados</option>
@@ -273,13 +279,9 @@
       {#if aplicantesFiltrados.length === 0}
         <div class="empty-state">
           <UsersRound size={44} strokeWidth={1.6} />
-          <h3>No hay postulantes para mostrar</h3>
+          <h3>No hay solicitantes para mostrar</h3>
           <p>
-            {#if aplicantes.length === 0}
-              Cuando un usuario aplique a esta oferta, aparecerá en esta sección.
-            {:else}
-              No hay postulantes con el estado seleccionado.
-            {/if}
+            Cuando los usuarios apliquen a tus ofertas, aparecerán en esta sección.
           </p>
         </div>
       {:else}
@@ -298,12 +300,17 @@
                 <div class="applicant-main">
                   <div>
                     <h3>{mostrarValor(aplicante.nombre_completo)}</h3>
-                    <p class="profession">{mostrarValor(aplicante.titulo_profesional)}</p>
+                    <p class="profession">{mostrarValor(aplicante.titulo_profesional || aplicante.profesion)}</p>
                   </div>
 
                   <span class="badge {aplicante.estado}">
                     {normalizarEstado(aplicante.estado)}
                   </span>
+                </div>
+
+                <div class="offer-line">
+                  <BriefcaseBusiness size={16} strokeWidth={1.8} />
+                  Aplicó a: <strong>{mostrarValor(aplicante.titulo_oferta)}</strong>
                 </div>
 
                 <div class="details-grid">
@@ -315,11 +322,6 @@
                   <span>
                     <Phone size={15} strokeWidth={1.8} />
                     {mostrarValor(aplicante.telefono)}
-                  </span>
-
-                  <span>
-                    <BriefcaseBusiness size={15} strokeWidth={1.8} />
-                    {mostrarValor(aplicante.experiencia)}
                   </span>
 
                   <span>
@@ -336,6 +338,11 @@
                     <CalendarDays size={15} strokeWidth={1.8} />
                     Aplicó el {formatearFecha(aplicante.fecha_aplicacion)}
                   </span>
+
+                  <span>
+                    <BriefcaseBusiness size={15} strokeWidth={1.8} />
+                    {mostrarValor(aplicante.experiencia)}
+                  </span>
                 </div>
 
                 <p class="description">
@@ -345,18 +352,18 @@
 
               <div class="actions">
                 <button
-                class="action-button"
-                type="button"
-                title="Ver perfil"
-                onclick={() => verPerfil(aplicante)}
+                  class="action-button"
+                  type="button"
+                  title="Ver currículum"
+                  onclick={() => verPerfil(aplicante)}
                 >
-                <Eye size={17} strokeWidth={1.8} />
-              </button>
+                  <Eye size={17} strokeWidth={1.8} />
+                </button>
 
                 <button
                   class="action-button accept"
                   type="button"
-                  title="Aceptar postulante"
+                  title="Aceptar solicitante"
                   disabled={aplicante.estado === 'aceptada'}
                   onclick={() => abrirModalEstado(aplicante, 'aceptar')}
                 >
@@ -366,7 +373,7 @@
                 <button
                   class="action-button reject"
                   type="button"
-                  title="Denegar postulante"
+                  title="Denegar solicitante"
                   disabled={aplicante.estado === 'denegada'}
                   onclick={() => abrirModalEstado(aplicante, 'denegar')}
                 >
@@ -395,14 +402,13 @@
           </div>
 
           <h2>
-            {modalAccion === 'aceptar' ? 'Aceptar postulante' : 'Denegar postulante'}
+            {modalAccion === 'aceptar' ? 'Aceptar solicitud' : 'Denegar solicitud'}
           </h2>
 
           <p>
             ¿Estás segura de que deseas
             {modalAccion === 'aceptar' ? 'aceptar' : 'denegar'} a
-            <strong>{aplicanteSeleccionado?.nombre_completo}</strong>
-            para esta oferta?
+            <strong>{aplicanteSeleccionado?.nombre_completo}</strong>?
           </p>
 
           <div class="modal-actions">
@@ -468,61 +474,16 @@
     margin-bottom: 28px;
   }
 
-  .back-button {
-    border: none;
-    background: transparent;
-    color: #667085;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 18px;
-    cursor: pointer;
-    font-weight: 700;
-  }
-
-  .title-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 20px;
-  }
-
-  .title-row h1 {
+  .page-header h1 {
     margin: 0 0 8px;
     color: #1f2937;
     font-size: 34px;
   }
 
-  .title-row p {
+  .page-header p {
     margin: 0;
     color: #667085;
-    font-size: 17px;
-  }
-
-  .offer-status {
-    padding: 9px 16px;
-    border-radius: 999px;
-    font-size: 14px;
-    font-weight: 700;
-    text-transform: capitalize;
-    background: #edf0f5;
-    color: #475467;
-  }
-
-  .offer-status.activa {
-    background: #dcfce7;
-    color: #166534;
-  }
-
-  .offer-status.inactiva {
-    background: #fef3c7;
-    color: #92400e;
-  }
-
-  .offer-status.cancelada,
-  .offer-status.eliminada {
-    background: #fee2e2;
-    color: #991b1b;
+    font-size: 16px;
   }
 
   .stats-grid {
@@ -587,29 +548,37 @@
     box-shadow: 0 10px 26px rgba(20, 31, 56, 0.06);
   }
 
-  .card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  .filters {
+    display: grid;
+    grid-template-columns: 1fr 240px 220px;
     gap: 18px;
     margin-bottom: 28px;
   }
 
-  .card-header h2 {
-    margin: 0;
-    color: #1f2937;
-    font-size: 22px;
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #eef3f6;
+    border-radius: 10px;
+    padding: 0 16px;
+    color: #667085;
   }
 
-  .card-header select {
+  .search-box input,
+  .filters select {
     border: none;
     outline: none;
-    border-radius: 10px;
     background: #eef3f6;
     color: #475467;
-    padding: 13px 16px;
+    padding: 14px 0;
     font-size: 15px;
-    min-width: 210px;
+    width: 100%;
+  }
+
+  .filters select {
+    border-radius: 10px;
+    padding: 14px 16px;
   }
 
   .empty-state {
@@ -670,7 +639,7 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 18px;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
   }
 
   .applicant-main h3 {
@@ -683,6 +652,19 @@
     margin: 0;
     color: #a14f3d;
     font-size: 15px;
+  }
+
+  .offer-line {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #667085;
+    margin-bottom: 14px;
+    font-size: 14px;
+  }
+
+  .offer-line strong {
+    color: #1f2937;
   }
 
   .badge {
@@ -872,6 +854,10 @@
       grid-template-columns: repeat(2, 1fr);
     }
 
+    .filters {
+      grid-template-columns: 1fr;
+    }
+
     .applicant {
       grid-template-columns: auto 1fr;
     }
@@ -883,13 +869,6 @@
   }
 
   @media (max-width: 700px) {
-    .title-row,
-    .card-header,
-    .applicant-main {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
     .stats-grid,
     .details-grid {
       grid-template-columns: 1fr;
@@ -902,6 +881,11 @@
     .avatar {
       width: 64px;
       height: 64px;
+    }
+
+    .applicant-main {
+      flex-direction: column;
+      align-items: flex-start;
     }
   }
 </style>

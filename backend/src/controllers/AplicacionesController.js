@@ -74,3 +74,48 @@ export const cambiarEstadoAplicacion = async (req, res) => {
     });
   }
 };
+
+export const obtenerAplicantesPorEmpresa = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `SELECT 
+        a.id_aplicacion,
+        a.id_usuario,
+        a.id_oferta,
+        a.estado,
+        a.fecha_aplicacion,
+
+        u.nombre_completo,
+        u.correo,
+        u.telefono,
+        u.foto_perfil,
+        u.titulo_profesional,
+        u.profesion,
+        u.experiencia,
+        u.nivel_educativo,
+        u.descripcion,
+        u.idiomas,
+
+        o.titulo AS titulo_oferta,
+        o.modalidad,
+        o.ubicacion,
+        o.tipo_contrato,
+        o.estado AS estado_oferta
+      FROM aplicaciones a
+      INNER JOIN usuarios u ON a.id_usuario = u.id_usuario
+      INNER JOIN ofertas o ON a.id_oferta = o.id_oferta
+      WHERE o.id_empresa = $1
+      ORDER BY a.fecha_aplicacion DESC`,
+      [id]
+    );
+
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({
+      mensaje: 'Error al obtener los aplicantes de la empresa',
+      error: error.message
+    });
+  }
+};
