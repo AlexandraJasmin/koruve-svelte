@@ -10,6 +10,7 @@ import authRoutes from './routes/authRoutes.js';
 import ofertasRoutes from './routes/OfertasRoutes.js';
 import aplicacionesRoutes from './routes/AplicacionesRoutes.js';
 import dashboardRoutes from './routes/DashboardRoutes.js';
+import foroRoutes from './routes/foroRoutes.js';
 
 import guardadosRoutes from './routes/GuardadosRoutes.js';
 import empresasListadoRoutes from './routes/EmpresasListadoRoutes.js';
@@ -88,6 +89,7 @@ app.use('/api', aplicacionesRoutes);
 app.use('/api', dashboardRoutes);
 app.use('/api', guardadosRoutes);
 app.use('/api', empresasListadoRoutes);
+app.use('/api', foroRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor backend corriendo en http://localhost:${PORT}`);
