@@ -4,7 +4,10 @@
   import { goto } from '$app/navigation';
   import { get } from 'svelte/store';
 
-  const API_URL = 'http://localhost:3001/api';
+  import {
+    obtenerOfertas,
+    filtrarOfertas
+  } from '$lib/services/ofertasService.js';
 
   let ofertas = $state([]);
   let cargando = $state(false);
@@ -106,23 +109,20 @@
     error = '';
 
     try {
-      const respuesta = await fetch(`${API_URL}/ofertas`);
-
-      if (!respuesta.ok) {
-        throw new Error(`Error HTTP ${respuesta.status}`);
-      }
-
-      const data = await respuesta.json();
-      ofertas = data;
+      ofertas = await obtenerOfertas();
     } catch (err) {
       console.error('Error al cargar ofertas:', err);
-      error = 'No se pudieron cargar los empleos.';
+      error = err.message || 'No se pudieron cargar los empleos.';
     } finally {
       cargando = false;
     }
   }
 
-  async function buscarOfertas() {
+  async function buscarOfertas(event) {
+    if (event) {
+      event.preventDefault();
+    }
+
     cargando = true;
     error = '';
 
@@ -130,18 +130,7 @@
       const params = crearParametros();
       const query = params.toString();
 
-      const url = query
-        ? `${API_URL}/ofertas/filtrar?${query}`
-        : `${API_URL}/ofertas`;
-
-      const respuesta = await fetch(url);
-
-      if (!respuesta.ok) {
-        throw new Error(`Error HTTP ${respuesta.status}`);
-      }
-
-      const data = await respuesta.json();
-      ofertas = data;
+      ofertas = await filtrarOfertas(params);
 
       if (query) {
         await goto(`/empleos?${query}`, {
@@ -156,7 +145,7 @@
       }
     } catch (err) {
       console.error('Error al buscar ofertas:', err);
-      error = 'No se pudieron filtrar los empleos.';
+      error = err.message || 'No se pudieron filtrar los empleos.';
     } finally {
       cargando = false;
     }
@@ -200,43 +189,6 @@
   <title>Empleos | Koruve</title>
 </svelte:head>
 
-<div class="container">
-  <nav class="navbar navbar-expand-lg py-3">
-    <div class="container-fluid">
-      <a href="/">
-        <img src="/img/logo.png" alt="Logo" style="height: 80px; width: 200px;">
-      </a>
-
-      <div class="collapse navbar-collapse">
-        <ul class="navbar-nav mx-auto fs-6">
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/empleos">Empleos</a>
-          </li>
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/empresa">Empresas</a>
-          </li>
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/">Recursos</a>
-          </li>
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/">Foro</a>
-          </li>
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/">Valoraciones</a>
-          </li>
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/">Nosotros</a>
-          </li>
-        </ul>
-
-        <button class="btn border-0 d-flex align-items-center gap-2" type="button">
-          <span class="fw-semibold">Ana Lopez</span>
-          <i class="bi bi-chevron-down small text-primary"></i>
-        </button>
-      </div>
-    </div>
-  </nav>
-</div>
 
 <section class="container-fluid py-5 hero-search-section">
   <div class="container">
@@ -246,6 +198,7 @@
           <li class="breadcrumb-item">
             <a href="/" class="text-decoration-none text-muted">Inicio</a>
           </li>
+
           <li class="breadcrumb-item active text-dark fw-semibold">
             Empleos
           </li>
@@ -258,6 +211,7 @@
         <div class="col-md-4 border-end">
           <div class="d-flex align-items-center px-3">
             <i class="bi bi-search text-muted me-3"></i>
+
             <input
               type="text"
               class="form-control border-0 shadow-none search-input"
@@ -270,6 +224,7 @@
         <div class="col-md-3 border-end">
           <div class="d-flex align-items-center px-3">
             <i class="bi bi-geo-alt text-muted me-3"></i>
+
             <input
               type="text"
               class="form-control border-0 shadow-none search-input"
@@ -288,6 +243,7 @@
 
               <select class="form-select border-0 shadow-none text-muted" bind:value={categoria}>
                 <option value="">Todas las categorías</option>
+
                 {#each categorias as item}
                   <option value={item}>{item}</option>
                 {/each}
@@ -315,15 +271,19 @@
         <div class="mb-5">
           <h5 class="fw-bold mb-4 filter-title">Tipo de empleo</h5>
 
-          {#each tipos as tipo}
+          {#each tipos as tipo, index}
             <div class="form-check form-switch mb-3">
               <input
+                id={`tipo-${index}`}
                 class="form-check-input"
                 type="checkbox"
                 checked={tiposSeleccionados.includes(tipo)}
                 onchange={() => toggleTipo(tipo)}
               >
-              <label class="form-check-label">{tipo}</label>
+
+              <label class="form-check-label" for={`tipo-${index}`}>
+                {tipo}
+              </label>
             </div>
           {/each}
         </div>
@@ -332,33 +292,33 @@
           <h5 class="fw-bold mb-4 filter-title">Fecha de publicación</h5>
 
           <div class="form-check mb-3">
-            <input class="form-check-input" type="radio" name="fecha" value="todas" bind:group={fecha}>
-            <label class="form-check-label">Todas</label>
+            <input id="fecha-todas" class="form-check-input" type="radio" name="fecha" value="todas" bind:group={fecha}>
+            <label class="form-check-label" for="fecha-todas">Todas</label>
           </div>
 
           <div class="form-check mb-3">
-            <input class="form-check-input" type="radio" name="fecha" value="1h" bind:group={fecha}>
-            <label class="form-check-label">Última hora</label>
+            <input id="fecha-1h" class="form-check-input" type="radio" name="fecha" value="1h" bind:group={fecha}>
+            <label class="form-check-label" for="fecha-1h">Última hora</label>
           </div>
 
           <div class="form-check mb-3">
-            <input class="form-check-input" type="radio" name="fecha" value="24h" bind:group={fecha}>
-            <label class="form-check-label">Últimas 24 horas</label>
+            <input id="fecha-24h" class="form-check-input" type="radio" name="fecha" value="24h" bind:group={fecha}>
+            <label class="form-check-label" for="fecha-24h">Últimas 24 horas</label>
           </div>
 
           <div class="form-check mb-3">
-            <input class="form-check-input" type="radio" name="fecha" value="7d" bind:group={fecha}>
-            <label class="form-check-label">Últimos 7 días</label>
+            <input id="fecha-7d" class="form-check-input" type="radio" name="fecha" value="7d" bind:group={fecha}>
+            <label class="form-check-label" for="fecha-7d">Últimos 7 días</label>
           </div>
 
           <div class="form-check mb-3">
-            <input class="form-check-input" type="radio" name="fecha" value="14d" bind:group={fecha}>
-            <label class="form-check-label">Últimos 14 días</label>
+            <input id="fecha-14d" class="form-check-input" type="radio" name="fecha" value="14d" bind:group={fecha}>
+            <label class="form-check-label" for="fecha-14d">Últimos 14 días</label>
           </div>
 
           <div class="form-check">
-            <input class="form-check-input" type="radio" name="fecha" value="30d" bind:group={fecha}>
-            <label class="form-check-label">Últimos 30 días</label>
+            <input id="fecha-30d" class="form-check-input" type="radio" name="fecha" value="30d" bind:group={fecha}>
+            <label class="form-check-label" for="fecha-30d">Últimos 30 días</label>
           </div>
         </div>
 
@@ -366,6 +326,7 @@
           <h5 class="fw-bold mb-4 filter-title">Salario</h5>
 
           <input
+            id="salarioMax"
             type="range"
             class="form-range"
             min="0"
@@ -472,55 +433,6 @@
   </div>
 </section>
 
-<footer class="text-white py-5 mt-5 footer">
-  <div class="container">
-    <div class="row gy-4">
-      <div class="col-md-4">
-        <h2 class="fw-bold mb-2">Koruve</h2>
-        <p class="mb-0">Llama ahora: +503 77458990</p>
-      </div>
-
-      <div class="col-6 col-md-2">
-        <h5 class="fw-semibold mb-3">Empresa</h5>
-        <ul class="list-unstyled">
-          <li class="mb-2"><a href="/" class="text-white text-decoration-none">Sobre nosotros</a></li>
-          <li class="mb-2"><a href="/" class="text-white text-decoration-none">Contáctanos</a></li>
-          <li><a href="/empleos" class="text-white text-decoration-none">Empleos</a></li>
-        </ul>
-      </div>
-
-      <div class="col-6 col-md-2">
-        <h5 class="fw-semibold mb-3">Servicios</h5>
-        <ul class="list-unstyled">
-          <li class="mb-2"><a href="/" class="text-white text-decoration-none">Finanzas</a></li>
-          <li class="mb-2"><a href="/" class="text-white text-decoration-none">Marketing</a></li>
-          <li><a href="/" class="text-white text-decoration-none">Diseño</a></li>
-        </ul>
-      </div>
-
-      <div class="col-6 col-md-3">
-        <h5 class="fw-semibold mb-3">Legal</h5>
-        <ul class="list-unstyled">
-          <li class="mb-2"><a href="/" class="text-white text-decoration-none">Política de Privacidad</a></li>
-          <li><a href="/" class="text-white text-decoration-none">Términos y condiciones</a></li>
-        </ul>
-      </div>
-    </div>
-
-    <hr class="border-light my-4">
-
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
-      <p class="mb-3 mb-md-0">© 2026 Copyright, All Right</p>
-
-      <div class="d-flex gap-3 fs-5">
-        <a href="/" class="text-white text-decoration-none">Twitter</a>
-        <a href="/" class="text-white text-decoration-none">Facebook</a>
-        <a href="/" class="text-white text-decoration-none">Instagram</a>
-        <a href="/" class="text-white text-decoration-none">LinkedIn</a>
-      </div>
-    </div>
-  </div>
-</footer>
 
 <style>
   :global(body) {

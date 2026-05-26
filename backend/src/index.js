@@ -11,6 +11,8 @@ import ofertasRoutes from './routes/OfertasRoutes.js';
 import aplicacionesRoutes from './routes/AplicacionesRoutes.js';
 import dashboardRoutes from './routes/DashboardRoutes.js';
 
+import guardadosRoutes from './routes/GuardadosRoutes.js';
+import empresasListadoRoutes from './routes/EmpresasListadoRoutes.js';
 dotenv.config();
 
 const app = express();
@@ -52,20 +54,20 @@ app.get('/api/test-db', async (req, res) => {
 app.get('/api/debug-db', async (req, res) => {
   try {
     const base = await pool.query('SELECT current_database() AS base_actual');
-    const totalOfertas = await pool.query('SELECT COUNT(*) AS total FROM ofertas');
-    const ofertasActivas = await pool.query("SELECT COUNT(*) AS total FROM ofertas WHERE estado = 'activa'");
-    const primerasOfertas = await pool.query(`
-      SELECT id_oferta, titulo, estado, ubicacion
-      FROM ofertas
-      ORDER BY id_oferta
-      LIMIT 5
+    const schema = await pool.query('SELECT current_schema() AS schema_actual');
+
+    const tablas = await pool.query(`
+      SELECT table_schema, table_name
+      FROM information_schema.tables
+      WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+      ORDER BY table_schema, table_name
     `);
 
     res.json({
+      db_name_env: process.env.DB_NAME,
       base_actual: base.rows[0].base_actual,
-      total_ofertas: Number(totalOfertas.rows[0].total),
-      ofertas_activas: Number(ofertasActivas.rows[0].total),
-      primeras_ofertas: primerasOfertas.rows
+      schema_actual: schema.rows[0].schema_actual,
+      tablas: tablas.rows
     });
   } catch (error) {
     res.status(500).json({
@@ -74,6 +76,7 @@ app.get('/api/debug-db', async (req, res) => {
     });
   }
 });
+
 // Rutas de autenticación y perfiles
 app.use('/api', usuariosRoutes);
 app.use('/api', empresasRoutes);
@@ -83,6 +86,8 @@ app.use('/api', authRoutes);
 app.use('/api', ofertasRoutes);
 app.use('/api', aplicacionesRoutes);
 app.use('/api', dashboardRoutes);
+app.use('/api', guardadosRoutes);
+app.use('/api', empresasListadoRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor backend corriendo en http://localhost:${PORT}`);
