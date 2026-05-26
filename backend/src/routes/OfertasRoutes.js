@@ -4,11 +4,15 @@ import {
   obtenerOfertasPorEmpresa,
   cambiarEstadoOferta,
   obtenerDetalleOferta,
-  actualizarOferta
+  actualizarOferta,
+  obtenerTodasLasOfertas,
+  filtrarOfertas
 } from '../controllers/OfertasController.js';
 
 const router = express.Router();
 
+router.get('/ofertas', obtenerTodasLasOfertas);
+router.get('/ofertas/filtrar', filtrarOfertas);
 router.post('/ofertas', crearOferta);
 router.put('/ofertas/:id', actualizarOferta);
 router.get('/empresas/:id/ofertas', obtenerOfertasPorEmpresa);
