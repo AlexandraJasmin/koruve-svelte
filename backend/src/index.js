@@ -11,7 +11,7 @@ import ofertasRoutes from './routes/OfertasRoutes.js';
 import aplicacionesRoutes from './routes/AplicacionesRoutes.js';
 import dashboardRoutes from './routes/DashboardRoutes.js';
 import foroRoutes from './routes/foroRoutes.js';
-
+import valoracionesRoutes from './routes/valoracionesRoutes.js';
 dotenv.config();
 
 const app = express();
@@ -85,6 +85,7 @@ app.use('/api', ofertasRoutes);
 app.use('/api', aplicacionesRoutes);
 app.use('/api', dashboardRoutes);
 app.use('/api', foroRoutes);
+app.use('/api', valoracionesRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor backend corriendo en http://localhost:${PORT}`);

@@ -1374,3 +1374,432 @@ main {
     max-width: none;
   }
 }
+
+/* VALORACIONES */
+
+.valoraciones-hero,
+.valoraciones-form-hero {
+  background: #eaf1fb;
+  min-height: 170px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.valoraciones-hero p,
+.valoraciones-form-hero p {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.valoraciones-hero h1,
+.valoraciones-form-hero h1 {
+  margin: 0 0 10px;
+  font-size: 28px;
+  color: #111827;
+}
+
+.valoraciones-hero span {
+  color: #475569;
+  font-size: 13px;
+}
+
+.valoraciones-page {
+  min-height: 620px;
+  padding: 45px 24px 90px;
+  background: #f8fafc;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 40px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.valoraciones-filtros {
+  display: flex;
+  flex-direction: column;
+}
+
+.filtros-card {
+  background: white;
+  border-radius: 14px;
+  padding: 24px 22px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.filtros-card h3 {
+  margin: 0 0 20px;
+  font-size: 17px;
+}
+
+.filtro-grupo {
+  margin-bottom: 24px;
+}
+
+.filtro-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.filtro-titulo h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.filtro-grupo label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #475569;
+  font-size: 13px;
+}
+
+.filtros-aplicar,
+.filtros-limpiar {
+  width: 100%;
+  height: 38px;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.filtros-aplicar {
+  background: #26384c;
+  color: white;
+  border: none;
+  margin-bottom: 10px;
+}
+
+.filtros-limpiar {
+  background: white;
+  color: #26384c;
+  border: 1px solid #26384c;
+}
+
+.valoraciones-contenido {
+  min-width: 0;
+}
+
+.valoraciones-top {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  margin-bottom: 34px;
+}
+
+.valoraciones-search {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0 14px;
+}
+
+.valoraciones-search input {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 13px;
+}
+
+.buscar-btn,
+.escribir-btn {
+  height: 42px;
+  border: none;
+  border-radius: 5px;
+  background: #26384c;
+  color: white;
+  padding: 0 20px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.valoraciones-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.valoraciones-meta select {
+  height: 38px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: white;
+}
+
+.valoraciones-error {
+  background: #f8d7da;
+  color: #842029;
+  border: 1px solid #f5c2c7;
+  padding: 16px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.valoraciones-success {
+  background: #dcfce7;
+  color: #166534;
+  padding: 14px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-weight: 700;
+}
+
+.valoraciones-empty {
+  background: white;
+  border-radius: 10px;
+  padding: 28px;
+  color: #475569;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.valoraciones-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.valoracion-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+}
+
+.valoracion-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.valoracion-card h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  color: #111827;
+}
+
+.valoracion-card-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.experiencia-badge {
+  text-transform: capitalize;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.experiencia-badge.positiva {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.experiencia-badge.neutral {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.experiencia-badge.negativa {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.valoracion-stars {
+  margin: 18px 0 12px;
+  color: #f59e0b;
+  font-size: 22px;
+  letter-spacing: 2px;
+}
+
+.valoracion-texto {
+  color: #475569;
+  line-height: 1.6;
+}
+
+.valoracion-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* ESCRIBIR RESEÑA */
+
+.resena-page {
+  min-height: 680px;
+  background: #f8fafc;
+  display: flex;
+  justify-content: center;
+  padding: 80px 24px;
+}
+
+.resena-card {
+  width: 100%;
+  max-width: 720px;
+  background: white;
+  border-radius: 18px;
+  padding: 54px 58px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  position: relative;
+}
+
+.resena-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: grid;
+  place-items: center;
+  color: #64748b;
+  font-size: 22px;
+  text-decoration: none;
+}
+
+.resena-card label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.resena-card input,
+.resena-card textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 14px;
+  font-size: 14px;
+  outline: none;
+  margin-bottom: 28px;
+}
+
+.resena-card textarea {
+  min-height: 135px;
+  resize: vertical;
+}
+
+.experiencia-options {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.experiencia-options button {
+  border: none;
+  border-radius: 999px;
+  padding: 9px 15px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+.experiencia-options button.active {
+  opacity: 1;
+  outline: 2px solid #26384c;
+}
+
+.experiencia-options .positiva {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.experiencia-options .neutral {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.experiencia-options .negativa {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.rating-stars {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 28px;
+}
+
+.rating-stars button {
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.rating-stars button.active {
+  color: #f59e0b;
+}
+
+.resena-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 26px;
+}
+
+.cancelar-resena,
+.publicar-resena {
+  height: 44px;
+  padding: 0 28px;
+  border-radius: 6px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cancelar-resena {
+  background: white;
+  color: #26384c;
+  border: 1px solid #26384c;
+}
+
+.publicar-resena {
+  background: #26384c;
+  color: white;
+  border: none;
+}
+
+.publicar-resena:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .valoraciones-page {
+    grid-template-columns: 1fr;
+  }
+
+  .valoraciones-top {
+    grid-template-columns: 1fr;
+  }
+
+  .resena-card {
+    padding: 46px 24px;
+  }
+
+  .valoracion-card-header,
+  .valoracion-footer {
+    flex-direction: column;
+  }
+}
