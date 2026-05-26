@@ -1,28 +1,19 @@
 <script>
   import SidebarEmpresa from './SidebarEmpresa.svelte';
-  import NavbarEmpresa from './NavbarEmpresa.svelte';
 
-  let {
-    active = 'dashboard',
-    empresa = {
-      nombre: 'Empresa',
-      logo: ''
-    },
-    children
-  } = $props();
+  let { active = '' } = $props();
 </script>
 
-<div class="empresa-page">
+<div class="dashboard-page">
   <SidebarEmpresa {active} />
 
   <main class="content">
-    <NavbarEmpresa {empresa} />
-    {@render children()}
+    <slot />
   </main>
 </div>
 
 <style>
-  .empresa-page {
+  .dashboard-page {
     min-height: 100vh;
     width: 100%;
     display: flex;
@@ -33,8 +24,19 @@
 
   .content {
     flex: 1;
-    width: calc(100vw - 300px);
-    padding: 34px 52px 54px;
+    width: calc(100vw - 280px);
+    padding: 42px 52px 54px;
     overflow-x: hidden;
+  }
+
+  @media (max-width: 900px) {
+    .dashboard-page {
+      flex-direction: column;
+    }
+
+    .content {
+      width: 100%;
+      padding: 28px 22px 40px;
+    }
   }
 </style>

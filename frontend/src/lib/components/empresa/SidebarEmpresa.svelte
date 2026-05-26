@@ -12,9 +12,7 @@
 </script>
 
 <aside class="sidebar">
-  <div class="brand">
-    <img class="brand-logo-img" src={logoKoruve} alt="Koruve" />
-  </div>
+  
 
   <nav class="menu">
     <a class:active={active === 'dashboard'} href="/empresa/dashboard">
