@@ -1,8 +1,9 @@
 <script>
   import { goto } from '$app/navigation';
 
-  let busqueda = '';
-  let ubicacion = '';
+        
+    let busqueda = $state('');
+    let ubicacion = $state('');
 
   function buscarEmpleos() {
     const params = new URLSearchParams();
@@ -173,60 +174,6 @@
   <title>Koruve | Inicio</title>
 </svelte:head>
 
-<!-- NAVBAR -->
-<div class="container">
-  <nav class="navbar navbar-expand-lg py-3">
-    <div class="container-fluid">
-      <a href="/">
-        <img src="/img/logo.png" alt="Logo" style="height: 80px; width: 200px;">
-      </a>
-
-      <button
-        class="navbar-toggler"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#navbarSupportedContent"
-      >
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav mx-auto fs-6">
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/empleos">Empleos</a>
-          </li>
-
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/empresa">Empresas</a>
-          </li>
-
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="#">Recursos</a>
-          </li>
-
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="#">Foro</a>
-          </li>
-
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="#">Valoraciones</a>
-          </li>
-
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="#">Nosotros</a>
-          </li>
-        </ul>
-
-        <div class="dropdown">
-          <button class="btn border-0 d-flex align-items-center gap-2" type="button">
-            <span class="fw-semibold">Mi Cuenta</span>
-            <i class="bi bi-chevron-down small text-primary"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-  </nav>
-</div>
 
 <!-- HERO / BUSCADOR -->
 <section class="hero-card">
@@ -596,83 +543,6 @@
     </div>
   </div>
 </section>
-
-<!-- FOOTER -->
-<footer class="text-white py-5" style="background-color:#2C3B4E;">
-  <div class="container">
-    <div class="row gy-4">
-      <div class="col-md-4">
-        <h2 class="fw-bold mb-2">Koruve</h2>
-        <p class="mb-0">Llama ahora: +503 77458990</p>
-      </div>
-
-      <div class="col-6 col-md-2">
-        <h5 class="fw-semibold mb-3">Empresa</h5>
-
-        <ul class="list-unstyled">
-          <li class="mb-2">
-            <a href="#" class="text-white text-decoration-none">Sobre nosotros</a>
-          </li>
-
-          <li class="mb-2">
-            <a href="#" class="text-white text-decoration-none">Contáctanos</a>
-          </li>
-
-          <li>
-            <a href="/empleos" class="text-white text-decoration-none">Empleos</a>
-          </li>
-        </ul>
-      </div>
-
-      <div class="col-6 col-md-2">
-        <h5 class="fw-semibold mb-3">Servicios</h5>
-
-        <ul class="list-unstyled">
-          <li class="mb-2">
-            <a href="#" class="text-white text-decoration-none">Finanzas</a>
-          </li>
-
-          <li class="mb-2">
-            <a href="#" class="text-white text-decoration-none">Marketing</a>
-          </li>
-
-          <li>
-            <a href="#" class="text-white text-decoration-none">Diseño</a>
-          </li>
-        </ul>
-      </div>
-
-      <div class="col-6 col-md-3">
-        <h5 class="fw-semibold mb-3">Legal</h5>
-
-        <ul class="list-unstyled">
-          <li class="mb-2">
-            <a href="#" class="text-white text-decoration-none">Política de Privacidad</a>
-          </li>
-
-          <li>
-            <a href="#" class="text-white text-decoration-none">Términos y condiciones</a>
-          </li>
-        </ul>
-      </div>
-    </div>
-
-    <hr class="border-light my-4">
-
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
-      <p class="mb-3 mb-md-0">
-        © 2026 Copyright, All Right
-      </p>
-
-      <div class="d-flex gap-3 fs-5">
-        <a href="#" class="text-white"><i class="bi bi-twitter"></i></a>
-        <a href="#" class="text-white"><i class="bi bi-facebook"></i></a>
-        <a href="#" class="text-white"><i class="bi bi-instagram"></i></a>
-        <a href="#" class="text-white"><i class="bi bi-linkedin"></i></a>
-      </div>
-    </div>
-  </div>
-</footer>
 
 <style>
   :global(body) {

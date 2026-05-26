@@ -1,19 +1,24 @@
 <script>
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import ModalesUsuario from '$lib/components/ModalesUsuario.svelte';
+  import { obtenerDashboardUsuario } from '$lib/services/dashboardUsuarioService.js';
 
-  const API_URL = 'http://localhost:3001/api';
   const ID_USUARIO_PRUEBA = 1;
+
+  let mostrarModalCerrarSesion = $state(false);
+  let mostrarModalEliminarCuenta = $state(false);
 
   let usuario = $state({
     id_usuario: 1,
-    nombre_completo: 'Ana Lopez',
+    nombre_completo: 'Ana López',
     profesion: 'Desarrolladora Web',
-    ubicacion: 'San Salvador'
+    ubicacion: 'San Salvador',
+    correo: '',
+    telefono: ''
   });
 
   let ofertasRecientes = $state([]);
-  let aplicaciones = $state([]);
   let cargando = $state(false);
   let error = $state('');
 
@@ -21,13 +26,31 @@
   let totalAlertas = $state(0);
   let totalMensajes = $state(0);
   let totalEmpresasContactadas = $state(0);
-  let perfilCompletado = $state(70);
+  let perfilCompletado = $state(0);
+  let totalGuardados = $state(0);
 
   let estadoPostulaciones = $state({
     pendiente: 0,
     aceptada: 0,
     denegada: 0
   });
+
+  function obtenerIdUsuario() {
+    const sesionGuardada = localStorage.getItem('koruveSesion');
+    const sesionAnterior = localStorage.getItem('sesionActiva');
+
+    let sesion = null;
+
+    if (sesionGuardada) {
+      sesion = JSON.parse(sesionGuardada);
+    } else if (sesionAnterior) {
+      sesion = JSON.parse(sesionAnterior);
+    }
+
+    const datos = sesion?.datos || sesion?.usuario || sesion;
+
+    return datos?.id_usuario || datos?.id || ID_USUARIO_PRUEBA;
+  }
 
   function primerNombre(nombre) {
     if (!nombre) return 'Usuario';
@@ -55,84 +78,30 @@
     });
   }
 
-  async function cargarOfertasRecientes() {
-    const respuesta = await fetch(`${API_URL}/ofertas`);
-
-    if (!respuesta.ok) {
-      throw new Error('No se pudieron cargar las ofertas recientes');
-    }
-
-    const data = await respuesta.json();
-    ofertasRecientes = data.slice(0, 5);
-  }
-
-  async function cargarAplicacionesUsuario() {
-    try {
-      const respuesta = await fetch(`${API_URL}/usuarios/${ID_USUARIO_PRUEBA}/aplicaciones`);
-
-      if (!respuesta.ok) {
-        aplicaciones = [];
-        return;
-      }
-
-      aplicaciones = await respuesta.json();
-    } catch (err) {
-      aplicaciones = [];
-    }
-  }
-
-  function calcularResumen() {
-    totalPostulaciones = aplicaciones.length;
-    totalAlertas = 0;
-    totalMensajes = 0;
-
-    const empresas = new Set();
-
-    estadoPostulaciones = {
-      pendiente: 0,
-      aceptada: 0,
-      denegada: 0
-    };
-
-    aplicaciones.forEach((item) => {
-      if (item.id_empresa) {
-        empresas.add(item.id_empresa);
-      }
-
-      if (item.estado === 'pendiente') {
-        estadoPostulaciones.pendiente += 1;
-      }
-
-      if (item.estado === 'aceptada') {
-        estadoPostulaciones.aceptada += 1;
-      }
-
-      if (item.estado === 'denegada') {
-        estadoPostulaciones.denegada += 1;
-      }
-    });
-
-    totalEmpresasContactadas = empresas.size;
-
-    let completado = 0;
-
-    if (usuario.nombre_completo) completado += 20;
-    if (usuario.profesion) completado += 20;
-    if (usuario.ubicacion) completado += 20;
-    if (usuario.correo) completado += 20;
-    if (usuario.telefono) completado += 20;
-
-    perfilCompletado = completado || 70;
-  }
-
   async function cargarDashboard() {
     cargando = true;
     error = '';
 
     try {
-      await cargarOfertasRecientes();
-      await cargarAplicacionesUsuario();
-      calcularResumen();
+      const idUsuario = obtenerIdUsuario();
+      const data = await obtenerDashboardUsuario(idUsuario);
+
+      usuario = data.usuario;
+
+        totalPostulaciones = data.resumen.total_postulaciones || 0;
+        totalAlertas = data.resumen.alertas || 0;
+        totalMensajes = data.resumen.mensajes || 0;
+        totalGuardados = data.resumen.guardados || 0;
+        totalEmpresasContactadas = data.resumen.empresas_contactadas || 0;
+        perfilCompletado = data.resumen.perfil_completado || 0;
+
+      estadoPostulaciones = {
+        pendiente: data.resumen.pendientes || 0,
+        aceptada: data.resumen.aceptadas || 0,
+        denegada: data.resumen.denegadas || 0
+      };
+
+      ofertasRecientes = data.empleos_recientes || [];
     } catch (err) {
       console.error('Error cargando dashboard:', err);
       error = 'No se pudieron cargar los datos del dashboard.';
@@ -158,51 +127,6 @@
   <title>Dashboard Usuario | Koruve</title>
 </svelte:head>
 
-<div class="container">
-  <nav class="navbar navbar-expand-lg py-3">
-    <div class="container-fluid">
-      <a href="/">
-        <img src="/img/logo.png" alt="Logo" style="height: 80px; width: 200px;">
-      </a>
-
-      <div class="collapse navbar-collapse">
-        <ul class="navbar-nav mx-auto fs-6">
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/empleos">Empleos</a>
-          </li>
-
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/">Empresas</a>
-          </li>
-
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/">Recursos</a>
-          </li>
-
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/">Foro</a>
-          </li>
-
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/">Valoraciones</a>
-          </li>
-
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/">Nosotros</a>
-          </li>
-        </ul>
-
-        <div class="dropdown">
-          <button class="btn border-0 d-flex align-items-center gap-2" type="button">
-            <span class="fw-semibold">{primerNombre(usuario.nombre_completo)} Lopez</span>
-            <i class="bi bi-chevron-down small text-primary"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-  </nav>
-</div>
-
 <div class="container-fluid dashboard-bg">
   <div class="row">
     <aside class="col-md-3 col-lg-2 bg-white border-end min-vh-100 p-3">
@@ -227,35 +151,40 @@
           Empleos Solicitados
         </a>
 
-        <a href="/" class="list-group-item list-group-item-action border-0">
+        <a href="/usuario/alertas" class="list-group-item list-group-item-action border-0">
           <i class="bi bi-bell me-2"></i>
           Alertas de Empleo
         </a>
 
-        <a href="/" class="list-group-item list-group-item-action border-0">
+        <a href="/usuario/guardados" class="list-group-item list-group-item-action border-0">
           <i class="bi bi-bookmark me-2"></i>
           Guardados
         </a>
 
-        <a href="/" class="list-group-item list-group-item-action border-0">
-          <i class="bi bi-chat me-2"></i>
-          Mensajes
-        </a>
-
-        <a href="/" class="list-group-item list-group-item-action border-0">
+        <a href="/usuario/password" class="list-group-item list-group-item-action border-0">
           <i class="bi bi-key me-2"></i>
           Cambiar Contraseña
         </a>
 
-        <a href="/" class="list-group-item list-group-item-action border-0">
-          <i class="bi bi-box-arrow-right me-2"></i>
-          Cerrar Sesión
-        </a>
+        <button
+        class="list-group-item list-group-item-action border-0 bg-white text-start"
+        type="button"
+        onclick={() => (mostrarModalCerrarSesion = true)}
+        >
+        <i class="bi bi-box-arrow-right me-2"></i>
+        Cerrar Sesión
+        </button>
 
-        <a href="/" class="list-group-item list-group-item-action border-0">
-          <i class="bi bi-trash me-2"></i>
-          Eliminar Perfil
-        </a>
+        <button
+        class="list-group-item list-group-item-action border-0 bg-white text-start"
+        type="button"
+        onclick={() => (mostrarModalEliminarCuenta = true)}
+        >
+        <i class="bi bi-trash me-2"></i>
+        Eliminar Perfil
+        </button>
+
+
       </div>
     </aside>
 
@@ -477,6 +406,13 @@
     </main>
   </div>
 </div>
+
+<ModalesUsuario
+  mostrarCerrarSesion={mostrarModalCerrarSesion}
+  mostrarEliminarCuenta={mostrarModalEliminarCuenta}
+  onCerrarModalCerrarSesion={() => (mostrarModalCerrarSesion = false)}
+  onCerrarModalEliminarCuenta={() => (mostrarModalEliminarCuenta = false)}
+/>
 
 <style>
   :global(body) {

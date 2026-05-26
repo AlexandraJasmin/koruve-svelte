@@ -4,7 +4,20 @@
   import { goto } from '$app/navigation';
   import { get } from 'svelte/store';
 
-  const API_URL = 'http://localhost:3001/api';
+  import {
+    obtenerOfertas,
+    obtenerDetalleOferta
+  } from '$lib/services/ofertasService.js';
+
+  import {
+    crearAplicacion
+  } from '$lib/services/aplicacionesService.js';
+
+  import {
+    verificarGuardado,
+    guardarEmpleo,
+    eliminarGuardadoPorUsuarioYOferta
+  } from '$lib/services/guardadosService.js';
 
   let oferta = $state(null);
   let relacionadas = $state([]);
@@ -13,9 +26,17 @@
   let aplicando = $state(false);
   let mensajeAplicacion = $state('');
 
+  let empleoGuardado = $state(false);
+  let idGuardadoActual = $state(null);
+  let guardandoEmpleo = $state(false);
+  let mensajeGuardado = $state('');
+
   let mostrarModalAplicacion = $state(false);
   let faltantesAplicacion = $state([]);
   let puedeAplicar = $state(false);
+
+  let mostrarModalExito = $state(false);
+  let mensajeExito = $state('');
 
   let usuarioActual = $state({
     id_usuario: 1,
@@ -39,9 +60,7 @@
   function formatearFecha(fechaISO) {
     if (!fechaISO) return 'No definida';
 
-    const fecha = new Date(fechaISO);
-
-    return fecha.toLocaleDateString('es-SV', {
+    return new Date(fechaISO).toLocaleDateString('es-SV', {
       day: 'numeric',
       month: 'long',
       year: 'numeric'
@@ -63,6 +82,90 @@
     return `Hace ${diffDias} día${diffDias !== 1 ? 's' : ''}`;
   }
 
+  function cargarUsuarioSesion() {
+    const sesionKoruve = localStorage.getItem('koruveSesion');
+    const sesionActiva = localStorage.getItem('sesionActiva');
+    const curriculumLocal = localStorage.getItem('curriculumUsuarioLocal');
+
+    let sesion = null;
+
+    if (sesionKoruve) {
+      sesion = JSON.parse(sesionKoruve);
+    } else if (sesionActiva) {
+      sesion = JSON.parse(sesionActiva);
+    }
+
+    const datos = sesion?.datos || sesion?.usuario || sesion;
+
+    let curriculum = datos?.curriculum || datos?.cv || '';
+
+    if (!curriculum && curriculumLocal) {
+      const cv = JSON.parse(curriculumLocal);
+      curriculum = cv.nombreArchivo || cv.archivo_cv || '';
+    }
+
+    if (datos) {
+      usuarioActual = {
+        id_usuario: datos.id_usuario || datos.id || 1,
+        nombre_completo: datos.nombre_completo || datos.nombre || '',
+        correo: datos.correo || '',
+        telefono: datos.telefono || '',
+        curriculum
+      };
+    }
+  }
+
+  function obtenerIdUsuarioActual() {
+    cargarUsuarioSesion();
+    return usuarioActual.id_usuario || 1;
+  }
+
+  async function verificarEstadoGuardado(idOferta) {
+    mensajeGuardado = '';
+
+    try {
+      const idUsuario = obtenerIdUsuarioActual();
+      const data = await verificarGuardado(idUsuario, idOferta);
+
+      empleoGuardado = data.guardado;
+      idGuardadoActual = data.empleo_guardado?.id_guardado || null;
+    } catch (err) {
+      console.error('Error al verificar guardado:', err);
+      empleoGuardado = false;
+      idGuardadoActual = null;
+    }
+  }
+
+  async function alternarGuardado() {
+    if (!oferta) return;
+
+    guardandoEmpleo = true;
+    mensajeGuardado = '';
+
+    try {
+      const idUsuario = obtenerIdUsuarioActual();
+
+      if (empleoGuardado) {
+        await eliminarGuardadoPorUsuarioYOferta(idUsuario, oferta.id_oferta);
+
+        empleoGuardado = false;
+        idGuardadoActual = null;
+        mensajeGuardado = 'Empleo eliminado de guardados.';
+      } else {
+        const data = await guardarEmpleo(idUsuario, oferta.id_oferta);
+
+        empleoGuardado = true;
+        idGuardadoActual = data.guardado?.id_guardado || null;
+        mensajeGuardado = 'Empleo guardado correctamente.';
+      }
+    } catch (err) {
+      console.error('Error al guardar/eliminar empleo:', err);
+      mensajeGuardado = err.message || 'No se pudo actualizar el empleo guardado.';
+    } finally {
+      guardandoEmpleo = false;
+    }
+  }
+
   async function cargarDetalle() {
     cargando = true;
     error = '';
@@ -71,19 +174,13 @@
       const paginaActual = get(page);
       const id = paginaActual.params.id;
 
-      const respuesta = await fetch(`${API_URL}/ofertas/${id}`);
+      oferta = await obtenerDetalleOferta(id);
 
-      if (!respuesta.ok) {
-        throw new Error('No se pudo cargar el detalle de la oferta');
-      }
-
-      const data = await respuesta.json();
-      oferta = data;
-
-      await cargarRelacionadas(data);
+      await verificarEstadoGuardado(oferta.id_oferta);
+      await cargarRelacionadas(oferta);
     } catch (err) {
       console.error('Error al cargar detalle:', err);
-      error = 'No se pudo cargar el detalle del empleo.';
+      error = err.message || 'No se pudo cargar el detalle del empleo.';
     } finally {
       cargando = false;
     }
@@ -91,14 +188,7 @@
 
   async function cargarRelacionadas(ofertaActual) {
     try {
-      const respuesta = await fetch(`${API_URL}/ofertas`);
-
-      if (!respuesta.ok) {
-        relacionadas = [];
-        return;
-      }
-
-      const data = await respuesta.json();
+      const data = await obtenerOfertas();
 
       relacionadas = data
         .filter((item) => Number(item.id_oferta) !== Number(ofertaActual.id_oferta))
@@ -124,19 +214,7 @@
 
   function revisarRequisitosAplicacion() {
     mensajeAplicacion = '';
-
-    const sesionGuardada = localStorage.getItem('sesionActiva');
-    const sesion = sesionGuardada ? JSON.parse(sesionGuardada) : null;
-
-    if (sesion) {
-      usuarioActual = {
-        id_usuario: sesion.id_usuario || sesion.id || 1,
-        nombre_completo: sesion.nombre_completo || sesion.nombre || '',
-        correo: sesion.correo || '',
-        telefono: sesion.telefono || '',
-        curriculum: sesion.curriculum || sesion.cv || ''
-      };
-    }
+    cargarUsuarioSesion();
 
     const faltantes = [];
 
@@ -165,36 +243,30 @@
     mostrarModalAplicacion = false;
   }
 
+  function cerrarModalExito() {
+    mostrarModalExito = false;
+    goto('/usuario/dashboard');
+  }
+
   async function aplicarAOferta() {
     if (!oferta) return;
 
     aplicando = true;
     mensajeAplicacion = '';
+    mensajeExito = '';
 
     try {
-      const respuesta = await fetch(`${API_URL}/aplicaciones`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          id_usuario: usuarioActual.id_usuario || 1,
-          id_oferta: oferta.id_oferta
-        })
-      });
+      const data = await crearAplicacion(
+        usuarioActual.id_usuario || 1,
+        oferta.id_oferta
+      );
 
-      const data = await respuesta.json();
-
-      if (!respuesta.ok) {
-        mensajeAplicacion = data.mensaje || 'No se pudo aplicar a esta oferta.';
-        return;
-      }
-
-      mensajeAplicacion = data.mensaje || 'Aplicación registrada correctamente.';
+      mensajeExito = data.mensaje || 'Solicitud enviada correctamente.';
       mostrarModalAplicacion = false;
+      mostrarModalExito = true;
     } catch (err) {
       console.error('Error al aplicar:', err);
-      mensajeAplicacion = 'No se pudo conectar con el servidor.';
+      mensajeAplicacion = err.message || 'No se pudo aplicar a esta oferta.';
     } finally {
       aplicando = false;
     }
@@ -209,10 +281,11 @@
   }
 
   function irPerfil() {
-    goto('/usuario/dashboard');
+    goto('/usuario/perfil');
   }
 
   onMount(() => {
+    cargarUsuarioSesion();
     cargarDetalle();
   });
 </script>
@@ -220,49 +293,6 @@
 <svelte:head>
   <title>{oferta ? `${oferta.titulo} | Koruve` : 'Detalle de empleo | Koruve'}</title>
 </svelte:head>
-
-<div class="container">
-  <nav class="navbar navbar-expand-lg py-3">
-    <div class="container-fluid">
-      <a href="/">
-        <img src="/img/logo.png" alt="Logo" style="height: 80px; width: 200px;">
-      </a>
-
-      <div class="collapse navbar-collapse">
-        <ul class="navbar-nav mx-auto fs-6">
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/empleos">Empleos</a>
-          </li>
-
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/">Empresas</a>
-          </li>
-
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/">Recursos</a>
-          </li>
-
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/">Foro</a>
-          </li>
-
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/">Valoraciones</a>
-          </li>
-
-          <li class="nav-item mx-3">
-            <a class="nav-link active fw-semibold" href="/">Nosotros</a>
-          </li>
-        </ul>
-
-        <a href="/usuario/dashboard" class="btn border-0 d-flex align-items-center gap-2">
-          <span class="fw-semibold">Ana Lopez</span>
-          <i class="bi bi-chevron-down small text-primary"></i>
-        </a>
-      </div>
-    </div>
-  </nav>
-</div>
 
 {#if cargando}
   <section class="container py-5">
@@ -361,7 +391,7 @@
               {formatearFecha(oferta.fecha_publicacion)}
             </p>
 
-            <div class="d-flex justify-content-center align-items-center gap-2">
+            <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
               <button
                 class="btn text-white rounded-3 apply-btn"
                 type="button"
@@ -370,7 +400,23 @@
               >
                 Solicitar empleo
               </button>
+
+              <button
+                class={`save-job-btn ${empleoGuardado ? 'saved' : ''}`}
+                type="button"
+                title={empleoGuardado ? 'Eliminar de guardados' : 'Guardar empleo'}
+                onclick={alternarGuardado}
+                disabled={guardandoEmpleo}
+              >
+                <i class={empleoGuardado ? 'bi bi-bookmark-fill' : 'bi bi-bookmark'}></i>
+              </button>
             </div>
+
+            {#if mensajeGuardado}
+              <div class="alert alert-light border mt-3 py-2 mb-0">
+                {mensajeGuardado}
+              </div>
+            {/if}
 
             {#if mensajeAplicacion}
               <div class="alert alert-info mt-3 py-2 mb-0">
@@ -605,6 +651,7 @@
 
         <div class="col-6 col-md-2">
           <h5 class="fw-semibold mb-3">Empresa</h5>
+
           <ul class="list-unstyled">
             <li class="mb-2"><a href="/" class="text-white text-decoration-none">Sobre nosotros</a></li>
             <li class="mb-2"><a href="/" class="text-white text-decoration-none">Contáctanos</a></li>
@@ -614,6 +661,7 @@
 
         <div class="col-6 col-md-2">
           <h5 class="fw-semibold mb-3">Servicios</h5>
+
           <ul class="list-unstyled">
             <li class="mb-2"><a href="/" class="text-white text-decoration-none">Finanzas</a></li>
             <li class="mb-2"><a href="/" class="text-white text-decoration-none">Marketing</a></li>
@@ -623,6 +671,7 @@
 
         <div class="col-6 col-md-3">
           <h5 class="fw-semibold mb-3">Legal</h5>
+
           <ul class="list-unstyled">
             <li class="mb-2"><a href="/" class="text-white text-decoration-none">Política de Privacidad</a></li>
             <li><a href="/" class="text-white text-decoration-none">Términos y condiciones</a></li>
@@ -736,14 +785,42 @@
   </div>
 {/if}
 
+{#if mostrarModalExito}
+  <div class="modal-backdrop-custom">
+    <div class="modal-card-custom text-center">
+      <div class="success-icon mx-auto mb-3">
+        <i class="bi bi-check-lg"></i>
+      </div>
+
+      <h4 class="fw-bold mb-2">Solicitud enviada correctamente</h4>
+
+      <p class="text-muted mb-4">
+        Tu postulación fue registrada. Puedes revisar el estado desde tu panel de usuario.
+      </p>
+
+      {#if mensajeExito}
+        <div class="alert alert-success rounded-4 text-start">
+          {mensajeExito}
+        </div>
+      {/if}
+
+      <div class="d-flex justify-content-center gap-2">
+        <button class="btn btn-outline-secondary" type="button" onclick={() => goto('/empleos')}>
+          Ver más empleos
+        </button>
+
+        <button class="btn text-white" type="button" style="background-color:#2F73D9;" onclick={cerrarModalExito}>
+          Ir a mi panel
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <style>
   :global(body) {
     background-color: #f8f9fb;
     color: #1f2937;
-    font-size: 13px;
-  }
-
-  .nav-small {
     font-size: 13px;
   }
 
@@ -821,6 +898,28 @@
     background-color: #1f63c5;
   }
 
+  .save-job-btn {
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 12px;
+    background-color: #eef4fb;
+    color: #6b7280;
+    font-size: 1.25rem;
+    transition: all 0.2s ease;
+  }
+
+  .save-job-btn:hover {
+    background-color: #ddebff;
+    color: #2f73d9;
+    transform: translateY(-2px);
+  }
+
+  .save-job-btn.saved {
+    background-color: #ddebff;
+    color: #2f73d9;
+  }
+
   .outline-back {
     border: 1px solid #bfc7d4;
     color: #374151;
@@ -865,5 +964,17 @@
     border-radius: 24px;
     padding: 28px;
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.22);
+  }
+
+  .success-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: #ddf6e6;
+    color: #2f9e5b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 34px;
   }
 </style>

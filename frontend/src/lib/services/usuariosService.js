@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'http://localhost:3001/api';
 
 export async function registrarUsuario(datosUsuario) {
   const respuesta = await fetch(`${API_URL}/usuarios`, {
