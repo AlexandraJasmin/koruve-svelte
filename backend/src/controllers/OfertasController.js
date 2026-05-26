@@ -347,3 +347,135 @@ export const obtenerOfertaPorId = async (req, res) => {
     });
   }
 };
+
+export const actualizarOferta = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      titulo,
+      descripcion,
+      requisitos,
+      salario,
+      modalidad,
+      ubicacion,
+      tipo_contrato,
+      responsabilidades,
+      habilidades_experiencia,
+      horario_laboral,
+      tipo_salario,
+      nivel_estudios,
+      experiencia_requerida,
+      tipo_empleo,
+      certificaciones,
+      idiomas_requeridos,
+      fecha_limite,
+      pais,
+      ciudad,
+      direccion,
+      referencia_mapa,
+      latitud,
+      longitud,
+      categoria_empleo,
+      urgente
+    } = req.body;
+
+    if (
+      !titulo ||
+      !descripcion ||
+      !requisitos ||
+      !salario ||
+      !modalidad ||
+      !ubicacion ||
+      !tipo_contrato
+    ) {
+      return res.status(400).json({
+        mensaje: 'Los campos principales de la oferta son obligatorios'
+      });
+    }
+
+    const salarioNumerico = Number(salario);
+
+    if (Number.isNaN(salarioNumerico) || salarioNumerico <= 0) {
+      return res.status(400).json({
+        mensaje: 'El salario debe ser un número mayor que cero'
+      });
+    }
+
+    const result = await pool.query(
+      `UPDATE ofertas
+      SET
+        titulo = $1,
+        descripcion = $2,
+        requisitos = $3,
+        salario = $4,
+        modalidad = $5,
+        ubicacion = $6,
+        tipo_contrato = $7,
+        responsabilidades = $8,
+        habilidades_experiencia = $9,
+        horario_laboral = $10,
+        tipo_salario = $11,
+        nivel_estudios = $12,
+        experiencia_requerida = $13,
+        tipo_empleo = $14,
+        certificaciones = $15,
+        idiomas_requeridos = $16,
+        fecha_limite = $17,
+        pais = $18,
+        ciudad = $19,
+        direccion = $20,
+        referencia_mapa = $21,
+        latitud = $22,
+        longitud = $23,
+        categoria_empleo = $24,
+        urgente = $25
+      WHERE id_oferta = $26
+      RETURNING *`,
+      [
+        titulo,
+        descripcion,
+        requisitos,
+        salarioNumerico,
+        modalidad,
+        ubicacion,
+        tipo_contrato,
+        responsabilidades || null,
+        habilidades_experiencia || null,
+        horario_laboral || null,
+        tipo_salario || null,
+        nivel_estudios || null,
+        experiencia_requerida || null,
+        tipo_empleo || null,
+        certificaciones || null,
+        idiomas_requeridos || null,
+        fecha_limite || null,
+        pais || null,
+        ciudad || null,
+        direccion || null,
+        referencia_mapa || null,
+        latitud || null,
+        longitud || null,
+        categoria_empleo || null,
+        urgente ?? false,
+        id
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        mensaje: 'Oferta no encontrada'
+      });
+    }
+
+    res.json({
+      mensaje: 'Oferta actualizada correctamente',
+      oferta: result.rows[0]
+    });
+  } catch (error) {
+    res.status(500).json({
+      mensaje: 'Error al actualizar la oferta',
+      error: error.message
+    });
+  }
+};
